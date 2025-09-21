@@ -105,6 +105,11 @@ if st.button("Run Analysis"):
 
         st.download_button("Download Profile Log", data=open(txt_filename).read(), file_name=os.path.basename(txt_filename))
 
+        st.markdown("### Profile List")
+        with open(txt_filename, 'r') as f:
+            profile_text = f.read()
+        st.code(profile_text, language='text')
+        
         fig = plt.figure(figsize=(10, 6))
         ax = plt.axes(projection=ccrs.PlateCarree())
         ax.set_extent([lon_min - 5, lon_max + 5, lat_min - 5, lat_max + 5])
