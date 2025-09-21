@@ -9,7 +9,7 @@ import os
 
 download_url = f"https://drive.google.com/uc?id=1dRFqAVP7Ck3r5wpAs5NdZM2f0s6U6vMS&export=download"
 output_dir = "argo_profile_logs"
-os.makedirs(output_fir, exist_ok=True)
+os.makedirs(output_dir, exist_ok=True)
 
 st.set_page_config(page_title="Hurricane & Argo Dashboard", layout="wide")
 st.title("Hurricane & Argo Profile Dashboard")
