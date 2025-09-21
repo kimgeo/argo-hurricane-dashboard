@@ -29,6 +29,7 @@ os.makedirs(output_dir, exist_ok=True)
 if st.button("Run Analysis"):
     st.info("Loading IBTrACS data...")
     ibtracs = pd.read_csv(download_url, header=0, low_memory=False)
+    st.write(ibtracs.columns.tolist())
     ibtracs.columns = ibtracs.columns.str.strip().str.upper()
     ibtracs['SEASON'] = pd.to_numeric(ibtracs['SEASON'], errors='coerce')
     ibtracs['LAT'] = pd.to_numeric(ibtracs['LAT'], errors='coerce')
