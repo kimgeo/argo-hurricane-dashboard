@@ -7,6 +7,10 @@ from argopy import DataFetcher
 from datetime import timedelta
 import os
 
+download_url = f"https://drive.google.com/uc?id=1dRFqAVP7Ck3r5wpAs5NdZM2f0s6U6vMS&export=download"
+output_dir = "argo_profile_logs"
+os.makedirs(output_fir, exist_ok=True)
+
 st.set_page_config(page_title="Hurricane & Argo Dashboard", layout="wide")
 st.title("Hurricane & Argo Profile Dashboard")
 
@@ -24,7 +28,7 @@ os.makedirs(output_dir, exist_ok=True)
 
 if st.button("Run Analysis"):
     st.info("Loading IBTrACS data...")
-    ibtracs = pd.read_csv(ibt_file_path, header=0, low_memory=False)
+    ibtracs = pd.read_csv(download_url, header=0, low_memory=False)
     ibtracs.columns = ibtracs.columns.str.strip().str.upper()
     ibtracs['SEASON'] = pd.to_numeric(ibtracs['SEASON'], errors='coerce')
     ibtracs['LAT'] = pd.to_numeric(ibtracs['LAT'], errors='coerce')
