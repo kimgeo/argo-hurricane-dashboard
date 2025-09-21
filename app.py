@@ -7,7 +7,7 @@ from argopy import DataFetcher
 from datetime import timedelta
 import os
 
-download_url = f"https://drive.google.com/uc?id=1dRFqAVP7Ck3r5wpAs5NdZM2f0s6U6vMS&export=download"
+ibt_file_path = "ibtracs.ALL.list.v04r01.csv.gz" 
 output_dir = "argo_profile_logs"
 os.makedirs(output_dir, exist_ok=True)
 
@@ -22,13 +22,9 @@ bef_bnd = st.slider("Days Before Hurricane", 1, 30, 14)
 dur_bnd = st.slider("Days During Hurricane", 1, 5, 1)
 aft_bnd = st.slider("Days After Hurricane", 1, 30, 14)
 
-ibt_file_path = "ibtracs.ALL.list.v04r01.csv" 
-output_dir = "argo_profile_logs"
-os.makedirs(output_dir, exist_ok=True)
-
 if st.button("Run Analysis"):
     st.info("Loading IBTrACS data...")
-    ibtracs = pd.read_csv(download_url, header=0, low_memory=False)
+    ibtracs = pd.read_csv(ibt_file_path, compression="gzip", header=0, low_memory=False)
     st.write(ibtracs.columns.tolist())
     ibtracs.columns = ibtracs.columns.str.strip().str.upper()
     ibtracs['SEASON'] = pd.to_numeric(ibtracs['SEASON'], errors='coerce')
