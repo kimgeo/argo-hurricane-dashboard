@@ -7,12 +7,16 @@ from argopy import DataFetcher
 from datetime import timedelta
 import os
 import logging
+import gc  # 메모리 정리용
 
+# 로깅 설정
 logging.basicConfig(level=logging.INFO)
 
+# Streamlit 설정
 st.set_page_config(page_title="Hurricane & Argo Dashboard", layout="wide")
 st.title("🌪️ Hurricane & Argo Profile Dashboard")
 
+# 입력값 설정
 season = st.number_input("Select Hurricane Season", min_value=1980, max_value=2025, value=2023)
 target_hurr_input = st.text_input("Enter Hurricane Names (comma-separated)", value="ADRIAN,HILARY,IDALIA,LIDIA")
 target_hurr = [h.strip().upper() for h in target_hurr_input.split(',') if h.strip()]
@@ -103,6 +107,7 @@ if st.button("Run Analysis"):
 
                 except Exception as e:
                     logging.info(f"Skipped due to error at {point_time.date()} ({point_lat:.2f}, {point_lon:.2f}): {type(e).__name__}")
+                    gc.collect()  # 메모리 정리
                     continue
 
             txt_filename = os.path.join(output_dir, f"argo_profiles_{name.lower().replace(' ', '_')}.txt")
