@@ -73,4 +73,82 @@ if st.button("Run Analysis"):
                 lon_box_min, lon_box_max = point_lon - bnd, point_lon + bnd
 
                 try:
-                    ds = DataFetcher
+                    ds = DataFetcher().region([
+                        lon_box_min, lon_box_max, lat_box_min, lat_box_max, 0, 2000,
+                        str(before_start.date()), str(after_end.date())
+                    ]).to_xarray()
+                    st.text("✅ Argo data fetched")
+
+                    if ds is None or ds['LATITUDE'].size == 0:
+                        st.text("⚠️ No Argo profiles found")
+                        continue
+
+                    argo_times = pd.to_datetime(ds['TIME'].values, errors='coerce')
+                    valid_mask = ~pd.isna(argo_times) & ~pd.isna(ds['LATITUDE']) & ~pd.isna(ds['LONGITUDE'])
+                    argo_times = argo_times[valid_mask]
+
+                    lon_argo = ds['LONGITUDE'].values
+                    lat_argo = ds['LATITUDE'].values
+                    platform_ids = ds['PLATFORM_NUMBER'].values
+                    cycle_numbers = ds['CYCLE_NUMBER'].values
+
+                    for lon, lat, time, pid, cycle in zip(lon_argo, lat_argo, argo_times, platform_ids, cycle_numbers):
+                        if pd.isna(time) or pd.isna(lat) or pd.isna(lon):
+                            continue
+                        pid_str = pid.decode() if isinstance(pid, (bytes, bytearray)) else str(pid)
+                        label = f"{pid_str}-{cycle}"
+                        entry = f"{label}, {time.date()}, {lat:.2f}, {lon:.2f}"
+                        if before_start <= time < before_end:
+                            argo_before.append(entry)
+                        elif during_start <= time <= during_end:
+                            argo_during.append(entry)
+                        elif after_start < time <= after_end:
+                            argo_after.append(entry)
+
+                except Exception as e:
+                    st.text(f"❌ Argo fetch error: {type(e).__name__}")
+                    continue
+
+            txt_filename = os.path.join(output_dir, f"argo_profiles_{name.lower().replace(' ', '_')}.txt")
+            with open(txt_filename, 'w') as f:
+                f.write(f"Argo Profiles for Hurricane: {name} {season}\n\n")
+                f.write("[Before]\n")
+                f.write("\n".join(sorted(set(argo_before))) if argo_before else "None\n")
+                f.write("\n\n[During]\n")
+                f.write("\n".join(sorted(set(argo_during))) if argo_during else "None\n")
+                f.write("\n\n[After]\n")
+                f.write("\n".join(sorted(set(argo_after))) if argo_after else "None\n")
+
+            st.download_button("Download Profile Log", data=open(txt_filename).read(), file_name=os.path.basename(txt_filename))
+
+            st.markdown("### Profile List")
+            with open(txt_filename, 'r') as f:
+                profile_text = f.read()
+            st.code(profile_text, language='text')
+
+            st.text("🗺️ Generating map...")
+            fig = plt.figure(figsize=(10, 6))
+            ax = plt.axes(projection=ccrs.PlateCarree())
+            ax.set_extent([lon_min - 5, lon_max + 5, lat_min - 5, lat_max + 5])
+            ax.add_feature(cfeature.COASTLINE)
+            ax.add_feature(cfeature.BORDERS)
+            ax.gridlines(draw_labels=True)
+            ax.plot(lons, lats, 'r-', label=f"{name} path")
+            ax.scatter(lons, lats, color='red', s=10)
+
+            def plot_profiles(profiles, color, label_text):
+                if profiles:
+                    coords = [entry.split(',')[-2:] for entry in profiles]
+                    lon_p = [float(lon.strip()) for _, lon in coords]
+                    lat_p = [float(lat.strip()) for lat, _ in coords]
+                    ax.scatter(lon_p, lat_p, color=color, s=10, label=label_text)
+
+            plot_profiles(argo_before, 'magenta', 'Argo: Before')
+            plot_profiles(argo_during, 'lime', 'Argo: During')
+            plot_profiles(argo_after, 'blue', 'Argo: After')
+
+            plt.title(f"{name} {season} – Hurricane Path & Argo Profiles")
+            plt.legend()
+            st.pyplot(fig)
+
+            status.update(label=f"✅ Done with {name} ({season})", state="complete")
