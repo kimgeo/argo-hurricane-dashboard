@@ -7,7 +7,6 @@ from argopy import DataFetcher
 from datetime import timedelta
 import os
 import logging
-import gc  # 메모리 정리용
 
 # 로깅 설정
 logging.basicConfig(level=logging.INFO)
@@ -107,7 +106,6 @@ if st.button("Run Analysis"):
 
                 except Exception as e:
                     logging.info(f"Skipped due to error at {point_time.date()} ({point_lat:.2f}, {point_lon:.2f}): {type(e).__name__}")
-                    gc.collect()  # 메모리 정리
                     continue
 
             txt_filename = os.path.join(output_dir, f"argo_profiles_{name.lower().replace(' ', '_')}.txt")
