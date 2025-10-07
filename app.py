@@ -59,7 +59,7 @@ if st.button("Run Analysis"):
             try:
                 ds = DataFetcher().region([
                     lon_min, lon_max, lat_min, lat_max, 0, 2000,
-                    str(time_min.date()), str(time_max.date())
+                    str(pd.to_datetime(time_min).date()), str(pd.to_datetime(time_max).date())
                 ]).to_xarray()
             except Exception as e:
                 st.error(f"❌ Argo data fetch failed for {name}: {e}")
