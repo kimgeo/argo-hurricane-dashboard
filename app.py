@@ -57,10 +57,10 @@ if st.button("Run Analysis"):
             time_max = times.max() + timedelta(days=aft_bnd)
 
             try:
-                ds = DataFetcher().region([
+                ds = DataFetcher().region((
                     lon_min, lon_max, lat_min, lat_max, 0, 2000,
                     str(pd.to_datetime(time_min).date()), str(pd.to_datetime(time_max).date())
-                ]).to_xarray()
+                )).to_xarray()
             except Exception as e:
                 st.error(f"❌ Argo data fetch failed for {name}: {e}")
                 continue
