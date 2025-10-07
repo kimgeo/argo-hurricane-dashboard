@@ -49,11 +49,12 @@ if st.button("Run Analysis"):
             group = group.sort_values('ISO_TIME')
             lats = group['LAT'].values
             lons = group['LON'].values
-            times = group['ISO_TIME'].values
+            times = pd.to_datetime(group['ISO_TIME'])
 
             lat_min, lat_max = lats.min() - bnd, lats.max() + bnd
             lon_min, lon_max = lons.min() - bnd, lons.max() + bnd
-            time_min, time_max = times.min() - timedelta(days=bef_bnd), times.max() + timedelta(days=aft_bnd)
+            time_min = times.min() - timedelta(days=bef_bnd),
+            time_max = times.max() + timedelta(days=aft_bnd)
 
             try:
                 ds = DataFetcher().region([
@@ -113,8 +114,8 @@ if st.button("Run Analysis"):
             def plot_profiles(profiles, color, label_text):
                 if profiles:
                     coords = [entry.split(',')[-2:] for entry in profiles]
-                    lon_p = [float(lon.strip()) for _, lon in coords]
-                    lat_p = [float(lat.strip()) for lat, _ in coords]
+                    lon_p = [float(lon.strip()) for lat, lon in coords]
+                    lat_p = [float(lat.strip()) for lat, lon in coords]
                     ax.scatter(lon_p, lat_p, color=color, s=10, label=label_text)
 
             plot_profiles(argo_before, 'magenta', 'Argo: Before')
