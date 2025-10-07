@@ -110,11 +110,11 @@ if st.button("Run Analysis"):
                             float_data = ArgoFloat(pid_str).load()
                             # cycle 번호에 해당하는 데이터만 필터링
                             cycle_mask = float_data.data['CYCLE_NUMBER'].values == cycle
-                            sensor_vars = list(float_data.data.variables.keys())
+                            sensor_vars = list(ds.data_vars)
                             sensor_vars = [v for v in sensor_vars if v not in ['LATITUDE', 'LONGITUDE', 'TIME', 'PRES', 'PLATFORM_NUMBER', 'CYCLE_NUMBER']]
                             sensors = ','.join(sensor_vars) if sensor_vars else 'Unknown'
                         except Exception as e:
-                            logging.warning(f"Failed to load sensors for {label}: {e}")
+                            logging.warning(f"Failed to extract sensors for {label}: {e}")
                             sensors = 'Unknown'
                         
                         entry = f"{label}, {time.date()}, {lat:.2f}, {lon:.2f}, Sensors: {sensors}"
