@@ -3,7 +3,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import cartopy.crs as ccrs
 import cartopy.feature as cfeature
-from argopy import DataFetcher
+from argopy import DataFetcher, ArgoFloat
 from datetime import timedelta
 import os
 import logging
@@ -112,6 +112,7 @@ if st.button("Run Analysis"):
                             sensor_vars = [v for v in sensor_vars if v not in ['LATITUDE', 'LONGITUDE', 'TIME', 'PRES', 'PLATFORM_NUMBER', 'CYCLE_NUMBER']]
                             sensors = ','.join(sensor_vars) if sensor_vars else 'Unknown'
                         except Exception as e:
+                            logging.warning(f"Failed to load sensors for {label}: {e}")
                             sensors = 'Unknown'
                         
                         entry = f"{label}, {time.date()}, {lat:.2f}, {lon:.2f}, Sensors: {sensors}"
@@ -154,9 +155,9 @@ if st.button("Run Analysis"):
 
             def plot_profiles(profiles, color, label_text):
                 if profiles:
-                    coords = [entry.split(',')[-2:] for entry in profiles]
-                    lon_p = [float(lon.strip()) for _, lon in coords]
+                    coords = [entry.split(',')[-2:4] for entry in profiles]
                     lat_p = [float(lat.strip()) for lat, _ in coords]
+                    lon_p = [float(lon.strip()) for _, lon in coords]
                     ax.scatter(lon_p, lat_p, color=color, s=10, label=label_text)
 
             plot_profiles(argo_before, 'magenta', 'Argo: Before')
