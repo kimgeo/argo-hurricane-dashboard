@@ -28,6 +28,17 @@ ibt_file_path = "ibtracs.ALL.list.v04r01.csv.gz"
 output_dir = "argo_profile_logs"
 os.makedirs(output_dir, exist_ok=True)
 
+def get_sensor_info(ds, index):
+    if 'PARAMETER' in ds:
+        try:
+            params = ds['PARAMETER'].isel(N_PROF=index).values
+            decoded = [p.decode().strip() if isinstance(p, (bytes, bytearray)) else str(p).strip() for p in params]
+            sensors = ','.join(decoded)
+            return sensors
+        except Exception:
+            return "Unknown"
+    return "Unknown"
+
 if st.button("Run Analysis"):
     st.info("📥 Loading IBTrACS data...")
 
@@ -100,12 +111,12 @@ if st.button("Run Analysis"):
                     platform_ids = ds['PLATFORM_NUMBER'].values
                     cycle_numbers = ds['CYCLE_NUMBER'].values
 
-                    for lon, lat, time, pid, cycle in zip(lon_argo, lat_argo, argo_times, platform_ids, cycle_numbers):
+                    for i, (lon, lat, time, pid, cycle) in enumerate(zip(lon_argo, lat_argo, argo_times, platform_ids, cycle_numbers)):
                         if pd.isna(time) or pd.isna(lat) or pd.isna(lon):
                             continue
                         pid_str = pid.decode() if isinstance(pid, (bytes, bytearray)) else str(pid)
                         label = f"{pid_str}-{cycle}"
-                        entry = f"{label}, {time.date()}, {lat:.2f}, {lon:.2f}"
+                        entry = f"{label}, {time.date()}, {lat:.2f}, {lon:.2f}, Sensor: {sensor_info}"
                         if before_start <= time < before_end:
                             argo_before.append(entry)
                         elif during_start <= time <= during_end:
