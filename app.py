@@ -6,10 +6,6 @@ import cartopy.feature as cfeature
 from argopy import DataFetcher
 from datetime import timedelta
 import os
-import logging
-
-# 로깅 설정
-logging.basicConfig(level=logging.INFO)
 
 # Streamlit 설정
 st.set_page_config(page_title="Hurricane & Argo Dashboard", layout="wide")
@@ -28,20 +24,21 @@ ibt_file_path = "ibtracs.ALL.list.v04r01.csv.gz"
 output_dir = "argo_profile_logs"
 os.makedirs(output_dir, exist_ok=True)
 
+@st.cache_data
+def load_ibtracs(path):
+    usecols = ['SEASON', 'NAME', 'LAT', 'LON', 'ISO_TIME']
+    df = pd.read_csv(path, compression="gzip", usecols=usecols)
+    df.columns = df.columns.str.strip().str.upper()
+    df['SEASON'] = pd.to_numeric(df['SEASON'], errors='coerce')
+    df['LAT'] = pd.to_numeric(df['LAT'], errors='coerce')
+    df['LON'] = pd.to_numeric(df['LON'], errors='coerce')
+    df['ISO_TIME'] = pd.to_datetime(df['ISO_TIME'], errors='coerce')
+    return df.dropna(subset=['LAT', 'LON', 'ISO_TIME'])
+
 if st.button("Run Analysis"):
     st.info("📥 Loading IBTrACS data...")
-    try:
-        ibtracs = pd.read_csv(ibt_file_path, compression="gzip", header=0, low_memory=False)
-        ibtracs.columns = ibtracs.columns.str.strip().str.upper()
-        ibtracs['SEASON'] = pd.to_numeric(ibtracs['SEASON'], errors='coerce')
-        ibtracs['LAT'] = pd.to_numeric(ibtracs['LAT'], errors='coerce')
-        ibtracs['LON'] = pd.to_numeric(ibtracs['LON'], errors='coerce')
-        ibtracs['ISO_TIME'] = pd.to_datetime(ibtracs['ISO_TIME'], format='%Y-%m-%d %H:%M:%S', errors='coerce')
-    except Exception as e:
-        st.error(f"❌ Failed to load IBTrACS data: {e}")
-        st.stop()
-
-    ibtracs_seas = ibtracs[ibtracs['SEASON'] == season].dropna(subset=['LAT', 'LON', 'ISO_TIME'])
+    ibtracs = load_ibtracs(ibt_file_path)
+    ibtracs_seas = ibtracs[ibtracs['SEASON'] == season]
     storms = ibtracs_seas.groupby('NAME')
 
     for name, group in storms:
@@ -52,51 +49,40 @@ if st.button("Run Analysis"):
             group = group.sort_values('ISO_TIME')
             lats = group['LAT'].values
             lons = group['LON'].values
-            times = pd.to_datetime(group['ISO_TIME'].values)
+            times = group['ISO_TIME'].values
 
             lat_min, lat_max = lats.min() - bnd, lats.max() + bnd
             lon_min, lon_max = lons.min() - bnd, lons.max() + bnd
+            time_min, time_max = times.min() - timedelta(days=bef_bnd), times.max() + timedelta(days=aft_bnd)
+
+            try:
+                ds = DataFetcher().region([
+                    lon_min, lon_max, lat_min, lat_max, 0, 2000,
+                    str(time_min.date()), str(time_max.date())
+                ]).to_xarray()
+            except Exception as e:
+                st.error(f"❌ Argo data fetch failed for {name}: {e}")
+                continue
 
             argo_before, argo_during, argo_after = [], [], []
 
-            for point_time, point_lat, point_lon in zip(times, lats, lons):
-                before_start = point_time - timedelta(days=bef_bnd)
-                before_end = point_time - timedelta(days=dur_bnd)
-                during_start = point_time - timedelta(days=dur_bnd)
-                during_end = point_time + timedelta(days=dur_bnd)
-                after_start = point_time + timedelta(days=dur_bnd)
-                after_end = point_time + timedelta(days=aft_bnd)
-
-                lat_box_min, lat_box_max = point_lat - bnd, point_lat + bnd
-                lon_box_min, lon_box_max = point_lon - bnd, point_lon + bnd
-
-                try:
-                    ds = DataFetcher().region([
-                        lon_box_min, lon_box_max, lat_box_min, lat_box_max, 0, 2000,
-                        str(before_start.date()), str(after_end.date())
-                    ]).to_xarray()
-
-                    if ds is None or ds['LATITUDE'].size == 0 or ds['LONGITUDE'].size == 0 or ds['TIME'].size == 0:
+            if ds is not None and all(k in ds for k in ['LATITUDE', 'LONGITUDE', 'TIME', 'PLATFORM_NUMBER', 'CYCLE_NUMBER']):
+                argo_times = pd.to_datetime(ds['TIME'].values, errors='coerce')
+                for lon, lat, time, pid, cycle in zip(ds['LONGITUDE'].values, ds['LATITUDE'].values, argo_times, ds['PLATFORM_NUMBER'].values, ds['CYCLE_NUMBER'].values):
+                    if pd.isna(time) or pd.isna(lat) or pd.isna(lon):
                         continue
+                    pid_str = pid.decode() if isinstance(pid, (bytes, bytearray)) else str(pid)
+                    label = f"{pid_str}-{cycle}"
+                    entry = f"{label}, {time.date()}, {lat:.2f}, {lon:.2f}"
 
-                    if not all(k in ds for k in ['LATITUDE', 'LONGITUDE', 'TIME', 'PLATFORM_NUMBER', 'CYCLE_NUMBER']):
-                        continue
+                    for pt_time in times:
+                        before_start = pt_time - timedelta(days=bef_bnd)
+                        before_end = pt_time - timedelta(days=dur_bnd)
+                        during_start = pt_time - timedelta(days=dur_bnd)
+                        during_end = pt_time + timedelta(days=dur_bnd)
+                        after_start = pt_time + timedelta(days=dur_bnd)
+                        after_end = pt_time + timedelta(days=aft_bnd)
 
-                    argo_times = pd.to_datetime(ds['TIME'].values, errors='coerce')
-                    valid_mask = ~pd.isna(argo_times) & ~pd.isna(ds['LATITUDE']) & ~pd.isna(ds['LONGITUDE'])
-                    argo_times = argo_times[valid_mask]
-
-                    lon_argo = ds['LONGITUDE'].values
-                    lat_argo = ds['LATITUDE'].values
-                    platform_ids = ds['PLATFORM_NUMBER'].values
-                    cycle_numbers = ds['CYCLE_NUMBER'].values
-
-                    for lon, lat, time, pid, cycle in zip(lon_argo, lat_argo, argo_times, platform_ids, cycle_numbers):
-                        if pd.isna(time) or pd.isna(lat) or pd.isna(lon):
-                            continue
-                        pid_str = pid.decode() if isinstance(pid, (bytes, bytearray)) else str(pid)
-                        label = f"{pid_str}-{cycle}"
-                        entry = f"{label}, {time.date()}, {lat:.2f}, {lon:.2f}"
                         if before_start <= time < before_end:
                             argo_before.append(entry)
                         elif during_start <= time <= during_end:
@@ -104,26 +90,16 @@ if st.button("Run Analysis"):
                         elif after_start < time <= after_end:
                             argo_after.append(entry)
 
-                except Exception as e:
-                    logging.info(f"Skipped due to error at {point_time.date()} ({point_lat:.2f}, {point_lon:.2f}): {type(e).__name__}")
-                    continue
-
             txt_filename = os.path.join(output_dir, f"argo_profiles_{name.lower().replace(' ', '_')}.txt")
             with open(txt_filename, 'w') as f:
                 f.write(f"Argo Profiles for Hurricane: {name} {season}\n\n")
-                f.write("[Before]\n")
-                f.write("\n".join(sorted(set(argo_before))) if argo_before else "None\n")
-                f.write("\n\n[During]\n")
-                f.write("\n".join(sorted(set(argo_during))) if argo_during else "None\n")
-                f.write("\n\n[After]\n")
-                f.write("\n".join(sorted(set(argo_after))) if argo_after else "None\n")
+                f.write("[Before]\n" + ("\n".join(sorted(set(argo_before))) if argo_before else "None\n"))
+                f.write("\n\n[During]\n" + ("\n".join(sorted(set(argo_during))) if argo_during else "None\n"))
+                f.write("\n\n[After]\n" + ("\n".join(sorted(set(argo_after))) if argo_after else "None\n"))
 
             st.download_button("Download Profile Log", data=open(txt_filename).read(), file_name=os.path.basename(txt_filename))
-
             st.markdown("### Profile List")
-            with open(txt_filename, 'r') as f:
-                profile_text = f.read()
-            st.code(profile_text, language='text')
+            st.code(open(txt_filename).read(), language='text')
 
             fig = plt.figure(figsize=(10, 6))
             ax = plt.axes(projection=ccrs.PlateCarree())
