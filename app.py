@@ -107,7 +107,9 @@ if st.button("Run Analysis"):
                         label = f"{pid_str}-{cycle}"
 
                         try:
-                            float_data = ArgoFloat(pid_str).profile(int(cycle)).load()
+                            float_data = ArgoFloat(pid_str).load()
+                            # cycle 번호에 해당하는 데이터만 필터링
+                            cycle_mask = float_data.data['CYCLE_NUMBER'].values == cycle
                             sensor_vars = list(float_data.data.variables.keys())
                             sensor_vars = [v for v in sensor_vars if v not in ['LATITUDE', 'LONGITUDE', 'TIME', 'PRES', 'PLATFORM_NUMBER', 'CYCLE_NUMBER']]
                             sensors = ','.join(sensor_vars) if sensor_vars else 'Unknown'
