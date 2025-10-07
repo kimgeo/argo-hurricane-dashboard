@@ -114,7 +114,7 @@ if st.button("Run Analysis"):
                         except Exception as e:
                             sensors = 'Unknown'
                         
-                        entry = f"{label}, {time.date()}, {lat:.2f}, {lon:.2f}"
+                        entry = f"{label}, {time.date()}, {lat:.2f}, {lon:.2f}, Sensors: {sensors}"
                         if before_start <= time < before_end:
                             argo_before.append(entry)
                         elif during_start <= time <= during_end:
