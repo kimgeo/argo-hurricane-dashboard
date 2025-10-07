@@ -107,8 +107,7 @@ if st.button("Run Analysis"):
                         label = f"{pid_str}-{cycle}"
 
                         try:
-                            sensor_vars = list(ds.data_vars)
-                            sensor_vars = [v for v in sensor_vars if v not in ['LATITUDE', 'LONGITUDE', 'TIME', 'PRES', 'PLATFORM_NUMBER', 'CYCLE_NUMBER']]
+                            sensor_vars = [v for v in ds.data_vars if not any(v.endswith(suffix) for suffix in ['_QC', '_ERROR', '_MODE']) and v not in ['DIRECTION', 'POSITION_QC', 'TIME_QC']]
                             sensors = ','.join(sensor_vars) if sensor_vars else 'Unknown'
                         except Exception as e:
                             logging.warning(f"Failed to extract sensors for {label}: {e}")
@@ -154,9 +153,8 @@ if st.button("Run Analysis"):
 
             def plot_profiles(profiles, color, label_text):
                 if profiles:
-                    coords = [entry.split(',')[-2:4] for entry in profiles]
-                    lat_p = [float(lat.strip()) for lat, _ in coords]
-                    lon_p = [float(lon.strip()) for _, lon in coords]
+                    lat_p = [float(entry.split(',')[2].strip()) for entry in profiles]
+                    lon_p = [float(entry.split(',')[3].strip()) for entry in profiles]
                     ax.scatter(lon_p, lat_p, color=color, s=10, label=label_text)
 
             plot_profiles(argo_before, 'magenta', 'Argo: Before')
@@ -167,4 +165,4 @@ if st.button("Run Analysis"):
             plt.legend()
             st.pyplot(fig)
 
-            status.update(label=f"✅ Done with {name} ({season})", state="complete")
+            status
