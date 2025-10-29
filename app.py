@@ -17,7 +17,7 @@ st.title("🌪️ Hurricane & Argo Profile Dashboard")
 
 with st.expander("📘 Dashboard Guide (Click to expand)"):
     st.markdown("""  
-    **User Guide for First-Time Visitors**
+    ## **User Guide for First-Time Visitors**
 
     ### 🧠 What is this dashboard for?
 
