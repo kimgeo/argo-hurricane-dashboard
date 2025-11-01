@@ -129,6 +129,8 @@ if st.session_state.show_list:
 
     st.markdown(f"⏱️ Time Window Summary:\n- Before: A days\n- During: ±B days (Total B*2 days)\n- After: C days")
 
+    bnd = st.slider("Boundary Box (degrees)", min_value=1, max_value=5, value=2)
+
     if st.button("🚀 Run Analysis"):
         st.info("📥 Reloading full hurricane data...")
         bef_bnd = bef_bnd + dur_bnd
@@ -165,8 +167,8 @@ if st.session_state.show_list:
                 lons = group['LON'].values
                 times = pd.to_datetime(group['ISO_TIME'].values)
 
-                lat_min, lat_max = lats.min() - 2, lats.max() + 2
-                lon_min, lon_max = lons.min() - 2, lons.max() + 2
+                lat_min, lat_max = lats.min() - bnd, lats.max() + bnd
+                lon_min, lon_max = lons.min() - bnd, lons.max() + bnd
 
                 argo_before, argo_during, argo_after = [], [], []
 
@@ -178,8 +180,8 @@ if st.session_state.show_list:
                     after_start = point_time + timedelta(days=dur_bnd)
                     after_end = point_time + timedelta(days=aft_bnd)
 
-                    lat_box_min, lat_box_max = point_lat - 2, point_lat + 2
-                    lon_box_min, lon_box_max = point_lon - 2, point_lon + 2
+                    lat_box_min, lat_box_max = point_lat - bnd, point_lat + bnd
+                    lon_box_min, lon_box_max = point_lon - bnd, point_lon + bnd
 
                     try:
                         ds = DataFetcher().region([
