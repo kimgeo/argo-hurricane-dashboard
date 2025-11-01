@@ -126,9 +126,10 @@ if st.session_state.show_list:
         dur_bnd = st.slider("B: Days Around Hurricane", 1, 5, 1)
     with col3:
         aft_bnd = st.slider("C: Days After", 1, 30, 14)
-
+        
     st.markdown(f"⏱️ Time Window Summary:\n- Before: A days\n- During: ±B days (Total B*2 days)\n- After: C days")
 
+    st.markdown("### 🌍 Spatial Range")
     bnd = st.slider("Boundary Box (degrees)", min_value=1, max_value=5, value=2)
 
     if st.button("🚀 Run Analysis"):
