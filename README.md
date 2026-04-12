@@ -5,6 +5,10 @@
 ## 🌪️ Hurricane & Argo Profile Dashboard  
 **User Guide for First-Time Visitors**
 
+https://github.com/user-attachments/assets/526f887c-2610-4021-974c-0f9f0d270933
+
+
+
 ### 🧠 What is this dashboard for?
 
 This dashboard helps you explore the relationship between hurricanes and ocean conditions using **Argo float profiles**. Argo floats are autonomous instruments that collect ocean data like temperature, salinity, and biogeochemical properties. By analyzing Argo data before, during, and after hurricanes, you can study how storms impact the ocean.
